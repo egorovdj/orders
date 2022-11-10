@@ -124,8 +124,8 @@ else
     {
         public string? ProviderId { get; set; }
         public string[]? Numbers { get; set; } = new[] { "" };
-        public DateTime? From { get; set; }
-        public DateTime? To { get; set; }
+        public DateTime? From { get; set; } = DateTime.Now.AddMonths(-1);
+        public DateTime? To { get; set; } = DateTime.Now;
         public string[]? Names { get; set; } = new[] { "" };
         public string[]? Units { get; set; } = new[] { "" };
 
@@ -168,7 +168,7 @@ else
 
     protected override void OnInitialized()
     {
-        orders = OrdersDB.Orders.Include(o => o.ProviderNavigation).Include(o=>o.Items).OrderBy(o => o.Date).ThenBy(o => o.Number).ToArray();
+        orders = OrdersDB.Orders.Include(o => o.ProviderNavigation).Include(o => o.Items).Where(o => (filter.From == null ? true : filter.From <= o.Date) && (filter.To == null ? true : filter.To >= o.Date)).OrderBy(o => o.Date).ThenBy(o => o.Number).ToArray();
         providers = OrdersDB.Providers.OrderBy(p=>p.Name).AsNoTracking().ToArray();
         items = OrdersDB.OrderItems.OrderBy(p => p.Name).AsNoTracking().ToArray();
     }
