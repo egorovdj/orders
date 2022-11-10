@@ -1,0 +1,43 @@
+﻿@page "/providers"
+@using System.Threading.Tasks
+@using Microsoft.EntityFrameworkCore
+@using Orders.Models
+@inject Models.OrdersDBContext OrdersDB
+
+<PageTitle>Список провайдеров</PageTitle>
+
+<h1>Список провайдеров</h1>
+
+@if (providers == null)
+{
+    <p><em>Загрузка данных...</em></p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr class="sticky-top mt-5">
+                <th>Ид.</th>
+                <th>Провайдер</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var provider in providers)
+            {
+                <tr>
+                    <td>@provider.Id</td>
+                    <td>@provider.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private Provider[]? providers;
+
+    protected override void OnInitialized()
+    {
+        providers = OrdersDB.Providers.ToArray();
+    }
+}

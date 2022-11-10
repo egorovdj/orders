@@ -1,0 +1,80 @@
+﻿@using System.Threading.Tasks
+@using Microsoft.EntityFrameworkCore
+@using Orders.Models
+@inject Models.OrdersDBContext OrdersDB
+
+@if (item != null)
+{
+    <div class="row g-3">
+        <div class="form-floating col-auto">
+            <input class="form-control" id="Name" @bind=item.Name />
+            <label for="Name">Наименование</label>
+        </div>
+        <div class="form-floating col-auto">
+            <input class="form-control" id="Quantity" @bind=item.Quantity type="number" min="0" step="0.01" />
+            <label for="Quantity">Количество</label>
+        </div>
+        <div class="form-floating col-auto">
+            <input class="form-control" id="Unit" @bind=item.Unit />
+            <label for="Unit">Единица измерения</label>
+        </div>
+        <div class="form-floating col-auto">
+            <button type="button" class="btn btn-success" data-bs-dismiss="@(item?.Id == 0 ? "modal" : "")" @onclick=HandleValidSubmit><i class="bi bi-hdd-fill"></i><br />@(
+            item?.Id == 0 ? "Добавить" : "Сохранить"
+            )</button>&nbsp;
+            @if (item?.Id != 0)
+            {
+                <button type="button" class="btn btn-success" @onclick=HandleDelete><i class="bi bi-trash"></i><br />Удалить</button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public OrderItem? item { get; set; }
+    [Parameter]
+    public int? orderId { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (item == null) item = new();
+    }
+    private async void HandleValidSubmit()
+    {
+        if (item.Id == 0)
+        {
+            Order order = OrdersDB.Orders.SingleOrDefault(o => o.Id == orderId);
+            if (order == null) return;
+            order.Items.Add(item);
+            try
+            {
+                if (item.Name == item.OrderNavigation.Number) throw new Exception("Недопустимое совпадене имени элемента и намера заказа");
+                var submited = OrdersDB.SaveChanges();
+                //item = new();
+                item = new();
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        else try
+            {
+                if (item.Name == item.OrderNavigation.Number) throw new Exception("Недопустимое совпадене имени элемента и намера заказа");
+                var submited = OrdersDB.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+    }
+    private async void HandleDelete()
+    {
+        item.OrderNavigation.Items.Remove(item);
+        OrdersDB.SaveChanges();
+        item = null;
+        StateHasChanged();
+    }
+}
