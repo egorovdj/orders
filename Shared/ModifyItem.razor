@@ -46,14 +46,15 @@
         {
             Order order = OrdersDB.Orders.SingleOrDefault(o => o.Id == orderId);
             if (order == null) return;
+            item.OrderId = order.Id;
             order.Items.Add(item);
             try
             {
-                if (item.Name == item.OrderNavigation.Number) throw new Exception("Недопустимое совпадене имени элемента и намера заказа");
+                if (item.Name == order.Number) throw new Exception("Недопустимое совпадене имени элемента и намера заказа");
                 var submited = OrdersDB.SaveChanges();
                 //item = new();
                 item = new();
-                StateHasChanged();
+                InvokeAsync(StateHasChanged);
             }
             catch (Exception ex)
             {
@@ -75,6 +76,6 @@
         item.OrderNavigation.Items.Remove(item);
         OrdersDB.SaveChanges();
         item = null;
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 }

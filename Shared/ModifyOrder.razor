@@ -70,7 +70,7 @@
         try
         {
             var submited = OrdersDB.SaveChanges();
-            StateHasChanged();
+            InvokeAsync(StateHasChanged);
             HandleValidFilter();
         }
         catch (Exception ex)
