@@ -154,16 +154,16 @@ else
     {
         OrdersDB.Orders.Remove(orders.SingleOrDefault(o => o.Id == id));
         OrdersDB.SaveChanges();
+        orderId = null;
 
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
         HandleValidFilter();
     }
 
     public async void HandleValidFilter()
     {
         orders = OrdersDB.Orders.Include(o => o.ProviderNavigation).Include(o => o.Items).Where(o => (string.IsNullOrEmpty(filter.ProviderId) ? true : o.ProviderId.ToString() == filter.ProviderId) && (filter.From == null ? true : filter.From <= o.Date) && (filter.To == null ? true : filter.To >= o.Date) && (string.IsNullOrEmpty(filter.Numbers[0]) ? true : filter.Numbers.Contains(o.Number)) && (string.IsNullOrEmpty(filter.Names[0]) ? true : o.Items.Any(i => filter.Names.Contains(i.Name))) && (string.IsNullOrEmpty(filter.Units[0]) ? true : o.Items.Any(i => filter.Units.Contains(i.Unit)))).OrderBy(o => o.Date).ThenBy(o => o.Number).ToArray();
-
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 
     protected override void OnInitialized()
