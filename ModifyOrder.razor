@@ -1,0 +1,86 @@
+﻿@using System.Threading.Tasks
+@using Microsoft.EntityFrameworkCore
+@using Orders.Models
+@inject Models.OrdersDBContext OrdersDB
+@inherits Orders.Pages.Index
+
+<div id="ModifyOrder" class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Изменить заказ</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+    <EditForm Model="@order" OnValidSubmit="@HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="modal-body row g-3">
+            <div class="form-floating col-auto">
+                <InputSelect class="form-select" id="Provider" @bind-Value=order.ProviderId>
+                    @if (providers != null)
+                    {
+                        <option value="">Не указан поставщик</option>
+                        @foreach (var provider in providers)
+                        {
+                            <option value="@provider.Id">@provider.Name</option>
+                        }
+                    }
+                </InputSelect>
+                <label for="From">Провайдер</label>
+            </div>
+            <div class="form-floating col-auto">
+                <InputDate class="form-control" id="From" @bind-Value="order.Date" />
+                <label for="From">Дата</label>
+            </div>
+            <div class="form-floating col-auto">
+                <InputText class="form-control" id="From" @bind-Value="order.Number" />
+                <label for="From">№ заказа</label>
+            </div>
+            @if(order.Id!=0)
+            {
+                @if (order.Items != null)
+                    foreach (var item in order.Items)
+                    {
+                        <ModifyItem item="item"></ModifyItem>
+                    }
+                <ModifyItem orderId="@orderId"></ModifyItem>
+            }
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle-fill"></i> Закрыть</button>
+            <button type="submit" class="btn btn-success"><i class="bi bi-hdd-fill"></i> Сохранить</button>
+        </div>
+    </EditForm>
+    </div>
+  </div>
+</div>
+@code {
+    [Parameter]
+    public int? orderId { get; set; }
+    [Parameter]
+    public Provider[]? providers { get; set; }
+    [Parameter]
+    public Order[]? orders { get; set; }
+
+    private Order order{ get; set; }
+
+    private void HandleValidSubmit()
+    {
+        if (orderId == null) OrdersDB.Orders.Add(order);
+        try
+        {
+            var submited = OrdersDB.SaveChanges();
+            InvokeAsync(StateHasChanged);
+            HandleValidFilter();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    protected override void OnParametersSet()
+    {
+        if (orderId != null) order = orders.SingleOrDefault(o => o.Id == orderId);
+        else order = new();
+    }
+}

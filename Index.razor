@@ -1,0 +1,175 @@
+﻿@page "/"
+@using System.Threading.Tasks
+@using Microsoft.EntityFrameworkCore
+@using Orders.Models
+@inject Models.OrdersDBContext OrdersDB
+
+<PageTitle>Главная - заказы</PageTitle>
+
+<h1>Список заказов</h1>
+
+<EditForm class="row" Model="@filter" OnValidSubmit="@HandleValidFilter">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="form-floating col-3">
+        <InputSelect class="form-select" id="Provider" @bind-Value=filter.ProviderId>
+            @if (providers != null)
+            {
+                <option value="">Любой поставщик</option>
+                @foreach (var provider in providers)
+                {
+                    <option value="@provider.Id">@provider.Name</option>
+                }
+            }
+        </InputSelect>
+        <label for="From">Провайдер</label>
+    </div>
+    <div class="form-floating col-2">
+        <InputDate class="form-control" id="From" @bind-Value="filter.From" />
+        <label for="From">начало периода</label>
+    </div>
+    <div class="form-floating col-2">
+        <InputDate class="form-control" id="To" @bind-Value="filter.To" />
+        <label for="To">конец периода</label>
+    </div>
+    <div class="dropdown col-1">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            №№<br />
+        </button>
+        @if (orders != null)
+            {
+            <select class="form-select dropdown-menu" multiple size="10" id="Numbers" name="Numbers[]" @onchange=HandleNumbersChange style="z-index: 10000;">
+                <option value="">Любые №№</option>
+                @foreach (var number in orders.Select(o=>o.Number).Distinct().OrderBy(n=>n))
+                {
+                    <option value="@number">@number</option>
+                }
+            </select>
+            }
+    </div>
+    <div class="dropdown col-1">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            эл-ты<br />
+        </button>
+        @if (orders != null)
+        {
+            <select class="form-select dropdown-menu" multiple size="10" id="Numbers" name="Numbers[]" @onchange=HandleItemsChange style="z-index: 10000;">
+                <option value="">Любые</option>
+                @foreach (var name in items.Where(i => orders.SingleOrDefault(o => o.Id == i.OrderId) != null).Select(i => i.Name).Distinct().OrderBy(n => n))
+                {
+                    <option value="@name">@name</option>
+                }
+            </select>
+        }
+    </div>
+    <div class="dropdown col-1">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            ед.из.<br />
+        </button>
+        @if (orders != null)
+        {
+            <select class="form-select dropdown-menu" multiple size="10" id="Numbers" name="Numbers[]" @onchange=HandleUnitsChange style="z-index: 10000;">
+                <option value="">Любые</option>
+                @foreach (var unit in items.Where(i => orders.SingleOrDefault(o => o.Id == i.OrderId) != null).Select(i => i.Unit).Distinct().OrderBy(n => n))
+                {
+                    <option value="@unit">@unit</option>
+                }
+            </select>
+        }
+    </div>
+    <div class="col-2">
+        <button id="ApplyFilter" class="btn btn-success" type="submit"><i class="bi bi-funnel-fill"></i><br />Фильтр</button>
+    </div>
+</EditForm>
+
+@if (orders == null)
+{
+    <p><em>Загрузка данных...</em></p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr class="sticky-top mt-5">
+                <th class="col-3">№</th>
+                <th class="col-2">Дата</th>
+                <th class="col-4">Провайдер</th>
+                <th class="col-3"><button class="btn btn-link btn-sm" data-bs-toggle="modal" data-bs-target="#ModifyOrder" @onclick=HandleNewOrder>Новый заказ</button></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var order in orders)
+            {
+                <tr>
+                    <td class="col-3 text-truncate">@order.Number</td>
+                    <td class="col-2">@order.Date?.ToString("dd.MM.yyyy")</td>
+                    <td class="col-4 text-truncate">@order.ProviderNavigation?.Name</td>
+                    <td class="col-3"><button class="btn btn-link btn-sm" data-bs-toggle="modal" data-bs-target="#ModifyOrder" title="Редактировать заказ" @onclick="(e)=>HandleOrder(order.Id)"><i class="bi bi-pencil-fill"></i></button>&nbsp;<button class="btn btn-link btn-sm" title="Удалить заказ" @onclick="(e)=>HandleDelete(order.Id)"><i class="bi bi-trash"></i></button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<ModifyOrder orderId=@orderId providers=@providers orders=@orders></ModifyOrder>
+
+@code {
+    private Order[]? orders;
+    private Filter filter = new();
+    private Provider[]? providers;
+    private OrderItem[]? items;
+    private int? orderId;
+
+    private class Filter
+    {
+        public string? ProviderId { get; set; }
+        public string[]? Numbers { get; set; } = new[] { "" };
+        public DateTime? From { get; set; } = DateTime.Now.AddMonths(-1);
+        public DateTime? To { get; set; } = DateTime.Now;
+        public string[]? Names { get; set; } = new[] { "" };
+        public string[]? Units { get; set; } = new[] { "" };
+
+    }
+    private async void HandleNumbersChange(ChangeEventArgs args)
+    {
+        filter.Numbers = args.Value as string[];
+    }
+    private async void HandleItemsChange(ChangeEventArgs args)
+    {
+        filter.Names = args.Value as string[];
+    }
+    private async void HandleUnitsChange(ChangeEventArgs args)
+    {
+        filter.Units = args.Value as string[];
+    }
+    private async void HandleNewOrder(EventArgs args)
+    {
+        orderId = null;
+    }
+    private async void HandleOrder(int id)
+    {
+        orderId = id;
+    }
+    private async void HandleDelete(int id)
+    {
+        OrdersDB.Orders.Remove(orders.SingleOrDefault(o => o.Id == id));
+        OrdersDB.SaveChanges();
+        orderId = null;
+
+        InvokeAsync(StateHasChanged);
+        HandleValidFilter();
+    }
+
+    public async void HandleValidFilter()
+    {
+        orders = OrdersDB.Orders.Include(o => o.ProviderNavigation).Include(o => o.Items).Where(o => (string.IsNullOrEmpty(filter.ProviderId) ? true : o.ProviderId.ToString() == filter.ProviderId) && (filter.From == null ? true : filter.From <= o.Date) && (filter.To == null ? true : filter.To >= o.Date) && (string.IsNullOrEmpty(filter.Numbers[0]) ? true : filter.Numbers.Contains(o.Number)) && (string.IsNullOrEmpty(filter.Names[0]) ? true : o.Items.Any(i => filter.Names.Contains(i.Name))) && (string.IsNullOrEmpty(filter.Units[0]) ? true : o.Items.Any(i => filter.Units.Contains(i.Unit)))).OrderBy(o => o.Date).ThenBy(o => o.Number).ToArray();
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override void OnInitialized()
+    {
+        orders = OrdersDB.Orders.Include(o => o.ProviderNavigation).Include(o => o.Items).Where(o => (filter.From == null ? true : filter.From <= o.Date) && (filter.To == null ? true : filter.To >= o.Date)).OrderBy(o => o.Date).ThenBy(o => o.Number).ToArray();
+        providers = OrdersDB.Providers.OrderBy(p=>p.Name).AsNoTracking().ToArray();
+        items = OrdersDB.OrderItems.OrderBy(p => p.Name).AsNoTracking().ToArray();
+    }
+}
